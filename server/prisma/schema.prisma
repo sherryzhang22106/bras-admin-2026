@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("bras_admins")
+}
+
+model Assessment {
+  id                String   @id @default(uuid())
+  sessionId         String   @unique
+  accessCode        String?  // 使用的兑换码
+  totalScore        Int
+  standardizedScore Int
+  grade             String
+  probability       String
+  attitudeLevel     String
+  reasonType        String
+  sections          String   // JSON: {base, reason, status, conditions, deep}
+  answers           String   // JSON: 答题记录
+  aiReport          String?
+  ipAddress         String?
+  createdAt         DateTime @default(now())
+
+  @@map("bras_assessments")
+  @@index([createdAt])
+  @@index([grade])
+}
+
+model AccessCode {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+  usedByIp  String?
+  batchId   String?
+  createdAt DateTime  @default(now())
+
+  @@map("bras_access_codes")
+  @@index([code, isUsed])
+}
+
+model BrasReconciliationAssessment {
+  id         String   @id @default(uuid())
+  sessionId  String   @unique
+  answers    String   // JSON
+  scores     String   // JSON
+  aiReport   String?  @db.Text
+  accessCode String?
+  createdAt  DateTime @default(now())
+
+  @@map("bras_reconciliation_assessments")
+  @@index([sessionId])
+  @@index([createdAt])
+}
