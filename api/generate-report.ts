@@ -366,7 +366,7 @@ function buildPromptPart2(scores: any, answers: any, primaryType: string, part1S
 
 7.3 心理健康监测
 - 列出需要寻求专业帮助的信号
-- 推荐资源
+- 建议寻求专业心理咨询师帮助（不要推荐任何具体的平台、APP、网站或热线电话）
 
 8. 是否值得挽回的深层思考（1000字左右）
 
@@ -429,6 +429,11 @@ function buildPromptPart2(scores: any, answers: any, primaryType: string, part1S
 - 不提供PUA话术和情感操控技巧
 - 如果关系有毒，明确建议离开
 - 尊重对方的决定和感受
+
+6. 禁止推荐外部资源：
+- 严禁推荐任何第三方平台、APP、网站（如简单心理、壹心理等）
+- 严禁提供任何热线电话号码
+- 如需建议寻求专业帮助，只说"建议寻求专业心理咨询师帮助"即可
 
 【特殊情况处理】
 
