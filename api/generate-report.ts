@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { scores, answers, primaryType, part, part1Summary } = req.body;
+    const { scores, answers, primaryType, part, part1Summary, stream } = req.body;
 
     if (!scores) {
       return res.status(400).json({ error: '缺少评分数据' });
@@ -50,6 +50,88 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       prompt = buildPromptPart1(scores, answers, primaryType);
     }
 
+    // 流式输出模式
+    if (stream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      const response = await fetch(DEEPSEEK_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: '你是一位专业的情感分析师和心理咨询师，擅长分析亲密关系问题并提供建设性的建议。请用温暖、专业且富有同理心的语气撰写报告。输出时不要使用#和*符号作为标题或强调，改用数字编号和文字描述。'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.6,
+          max_tokens: 4000,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('DeepSeek API error:', error);
+        res.write(`data: ${JSON.stringify({ error: 'AI 服务暂时不可用' })}\n\n`);
+        res.end();
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.trim() !== '');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                // 下篇添加固定结尾
+                if (reportPart === 'part2') {
+                  const ending = getFixedEnding();
+                  res.write(`data: ${JSON.stringify({ content: ending })}\n\n`);
+                  fullContent += ending;
+                }
+                res.write(`data: ${JSON.stringify({ done: true, fullContent })}\n\n`);
+                res.end();
+                return;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content || '';
+                if (content) {
+                  fullContent += content;
+                  res.write(`data: ${JSON.stringify({ content })}\n\n`);
+                }
+              } catch (e) {
+                // 忽略解析错误
+              }
+            }
+          }
+        }
+      }
+      return;
+    }
+
+    // 非流式模式（保持兼容）
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
       headers: {
@@ -68,8 +150,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 5000,
+        temperature: 0.6,
+        max_tokens: 4000,
       }),
     });
 
