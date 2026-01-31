@@ -27,9 +27,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     verifyToken(req);
 
-    // 获取所有未使用的兑换码
+    const { batchId } = req.query;
+
+    // 根据是否有 batchId 决定查询条件
+    const where = batchId && typeof batchId === 'string'
+      ? { batchId }
+      : { isUsed: false };
+
     const codes = await prisma.accessCode.findMany({
-      where: { isUsed: false },
+      where,
       orderBy: { createdAt: 'desc' },
       select: {
         code: true,
@@ -37,6 +43,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         createdAt: true,
       },
     });
+
+    if (codes.length === 0) {
+      return res.status(404).json({ error: batchId ? '未找到该批次的兑换码' : '没有可导出的兑换码' });
+    }
 
     // 生成 CSV 内容
     const csvHeader = '兑换码,批次,生成时间\n';
@@ -46,8 +56,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const csv = csvHeader + csvContent;
 
     // 设置响应头，返回 CSV 文件
+    const filename = batchId ? `access-codes-${batchId}.csv` : `access-codes-${Date.now()}.csv`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename=access-codes-${Date.now()}.csv`);
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
 
     // 添加 BOM 以支持 Excel 正确显示中文
     res.send('\uFEFF' + csv);

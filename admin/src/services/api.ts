@@ -41,7 +41,7 @@ export const accessCodeApi = {
   export: () =>
     api.get('/access-codes/export', { responseType: 'blob' }),
   exportBatch: (batchId: string) =>
-    api.get(`/access-codes/export/${batchId}`, { responseType: 'blob' }),
+    api.get(`/access-codes/export?batchId=${batchId}`, { responseType: 'blob' }),
 };
 
 export default api;
