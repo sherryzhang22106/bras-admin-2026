@@ -70,13 +70,13 @@ export default function AccessCodes() {
       const response = await accessCodeApi.exportBatch(lastBatchId);
       
       // 创建Blob并下载
-      const blob = new Blob([response.data], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      const blob = new Blob([response.data], {
+        type: 'text/csv;charset=utf-8'
       });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `兑换码_${lastBatchId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `兑换码_${lastBatchId}_${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
